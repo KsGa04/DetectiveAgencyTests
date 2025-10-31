@@ -1,8 +1,6 @@
 ﻿name: API Tests
 
 on:
-  push:
-        branches: [ main, develop, master ]
   workflow_dispatch:
     inputs:
       environment:
@@ -52,11 +50,15 @@ jobs:
     - name: Build project
       run: dotnet build --no-restore --configuration Release
 
-    - name: Run tests with proper paths
+    - name: Create directories for test results
       run: |
-        # Убедимся, что папки существуют
-        mkdir -p TestResults allure-results TestLogs allure-report
-        
+        New-Item -ItemType Directory -Force -Path "TestResults"
+        New-Item -ItemType Directory -Force -Path "allure-results" 
+        New-Item -ItemType Directory -Force -Path "TestLogs"
+        New-Item -ItemType Directory -Force -Path "allure-report"
+
+    - name: Run tests
+      run: |
         dotnet test --no-build --configuration Release --verbosity normal `
           --logger "trx;LogFileName=test-results.trx" `
           --logger "html;LogFileName=test-results.html" `
