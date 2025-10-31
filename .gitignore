@@ -6,3 +6,4 @@ allure-report/
 
 # Security reports
 security-scan-results.json
+/bin/Debug/net8.0
