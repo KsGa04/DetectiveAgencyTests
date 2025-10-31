@@ -46,7 +46,7 @@ public abstract class BaseTest
     }
 
     [TearDown]
-    public virtual void TearDown()
+    public virtual async Task TearDown()
     {
         var testResult = TestContext.CurrentContext.Result.Outcome.Status;
         var status = testResult == TestStatus.Passed ? "PASSED" :
@@ -61,7 +61,7 @@ public abstract class BaseTest
         TestLogger.LogInfo($"Test Result: {status}");
         TestLogger.EndTest(status);
 
-        Thread.Sleep(100);
+        await Task.Delay(100); // Заменим Thread.Sleep на Task.Delay для async
     }
 
     [OneTimeTearDown]

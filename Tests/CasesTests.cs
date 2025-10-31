@@ -27,13 +27,15 @@ public class CasesTests : BaseTest
     }
 
     [TearDown]
-    public async Task TearDown()
+    public override async Task TearDown()
     {
         if (!string.IsNullOrEmpty(_createdCaseId))
         {
             LogTestStep($"Очистка: удаление созданного дела с ID {_createdCaseId}");
             await CasesClient.DeleteCaseAsync(_createdCaseId);
         }
+
+        await base.TearDown();
     }
 
     [Test]

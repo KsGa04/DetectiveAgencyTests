@@ -22,9 +22,17 @@ env:
 
 jobs:
   test:
-    name: Run API Tests
+    name: Run API Tests and Generate Report
     runs-on: windows-latest
-    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout code
@@ -74,47 +82,15 @@ jobs:
         allure generate allure-results --clean -o allure-report
         echo "Allure report generated at: allure-report/index.html"
 
-    - name: List Allure report contents
+    - name: Verify Allure report
       run: |
-        Get-ChildItem -Path allure-report -Recurse | Select-Object Name
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ github.run_id }}
-        path: |
-          ./TestResults/
-          ./allure-results/
-          ./TestLogs/
-        retention-days: 30
-
-  deploy:
-    name: Deploy Allure Report to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: test
-    if: success()
-    
-    # Даем необходимые разрешения
-    permissions:
-      pages: write
-      id-token: write
-      contents: read
-      actions: read
-    
-    # Настройка окружения для GitHub Pages
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download Allure report from test job
-      uses: actions/download-artifact@v4
-      with:
-        name: test-results-${{ needs.test.outputs.run_id }}
-        path: ./downloaded-artifacts
+        if (Test-Path "allure-report\index.html") {
+            echo "✅ Allure report generated successfully"
+            Get-ChildItem "allure-report" | Select-Object Name
+        } else {
+            echo "❌ Allure report generation failed"
+            exit 1
+        }
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -122,8 +98,18 @@ jobs:
     - name: Upload Allure report to Pages
       uses: actions/upload-pages-artifact@v3
       with:
-        path: ./downloaded-artifacts/allure-report
+        path: ./allure-report
 
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+
+    - name: Upload test results as backup
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-backup
+        path: |
+          ./TestResults/
+          ./allure-results/
+          ./TestLogs/
+        retention-days: 7

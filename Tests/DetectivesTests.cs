@@ -27,13 +27,15 @@ public class DetectivesTests : BaseTest
     }
 
     [TearDown]
-    public async Task TearDown()
+    public override async Task TearDown()
     {
         if (!string.IsNullOrEmpty(_createdDetectiveId))
         {
             LogTestStep($"Очистка: удаление созданного детектива с ID {_createdDetectiveId}");
             await DetectivesClient.DeleteDetectiveAsync(_createdDetectiveId);
         }
+
+        await base.TearDown();
     }
 
     [Test]

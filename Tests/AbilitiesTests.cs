@@ -26,13 +26,15 @@ public class AbilitiesTests : BaseTest
     }
 
     [TearDown]
-    public async Task TearDown()
+    public override async Task TearDown()
     {
         if (!string.IsNullOrEmpty(_createdAbilityId))
         {
             LogTestStep($"Очистка: удаление созданной способности с ID {_createdAbilityId}");
             await AbilitiesClient.DeleteAbilityAsync(_createdAbilityId);
         }
+
+        await base.TearDown();
     }
 
     [Test]
