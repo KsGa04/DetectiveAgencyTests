@@ -1,0 +1,8 @@
+﻿# Test results
+TestResults/
+allure-results/
+TestLogs/
+allure-report/
+
+# Security reports
+security-scan-results.json

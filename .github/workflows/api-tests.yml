@@ -1,0 +1,103 @@
+﻿name: API Tests
+
+on:
+  push:
+        branches: [ main, develop, master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test against'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  ALLURE_VERSION: '2.24.0'
+
+jobs:
+  test:
+    name: Run API Tests
+    runs-on: windows-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Java for Allure
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Install Allure
+      run: |
+        $allureUrl = "https://github.com/allure-framework/allure2/releases/download/${{ env.ALLURE_VERSION }}/allure-${{ env.ALLURE_VERSION }}.zip"
+        Invoke-WebRequest -Uri $allureUrl -OutFile "allure.zip"
+        Expand-Archive -Path "allure.zip" -DestinationPath "allure"
+        echo "$PWD\allure\allure-${{ env.ALLURE_VERSION }}\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build project
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run tests with proper paths
+      run: |
+        # Убедимся, что папки существуют
+        mkdir -p TestResults allure-results TestLogs allure-report
+        
+        dotnet test --no-build --configuration Release --verbosity normal `
+          --logger "trx;LogFileName=test-results.trx" `
+          --logger "html;LogFileName=test-results.html" `
+          --logger "console;verbosity=normal" `
+          --results-directory ./TestResults
+
+    - name: Generate Allure report
+      run: |
+        allure generate allure-results --clean -o allure-report
+        echo "Allure report generated at: allure-report/index.html"
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ github.run_id }}
+        path: |
+          ./TestResults/
+          ./allure-results/
+          ./TestLogs/
+        retention-days: 30
+
+    - name: Upload Allure report for Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: allure-report/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+    
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

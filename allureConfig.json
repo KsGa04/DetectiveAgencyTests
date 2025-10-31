@@ -1,0 +1,9 @@
+﻿{
+  "allure": {
+    "directory": "allure-results",
+    "links": [],
+    "logging": {
+      "level": "debug"
+    }
+  }
+}
